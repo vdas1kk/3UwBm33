@@ -1,80 +1,159 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Фильтры</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    body { font-family: sans-serif; padding: 16px; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
-    canvas { width: 100%; border-radius: 12px; margin: 12px 0; }
-    .filters { display: flex; gap: 8px; flex-wrap: wrap; }
-    button { flex: 1; min-width: 70px; padding: 10px; border-radius: 8px; border: 1px solid #ccc; background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #fff); }
-    input[type="file"] { display: none; }
-    .upload-label { display: block; text-align: center; padding: 40px 20px; border: 2px dashed #aaa; border-radius: 12px; cursor: pointer; margin-bottom: 12px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Фильтр подарков</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #18222d);
+            --secondary-bg-color: var(--tg-theme-secondary-bg-color, #232e3c);
+            --text-color: var(--tg-theme-text-color, #ffffff);
+            --hint-color: var(--tg-theme-hint-color, #708499);
+            --button-color: var(--tg-theme-button-color, #2ea6ff);
+            --button-text-color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: var(--tg-viewport-stable-height, 100vh);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px 16px;
+            /* Учет безопасных зон iOS (челка и нижняя полоса) */
+            padding-top: calc(env(safe-area-inset-top, 0px) + 20px);
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+        }
+
+        .header {
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--hint-color);
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--hint-color);
+        }
+
+        select, input {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            background-color: var(--secondary-bg-color);
+            color: var(--text-color);
+            border: 1px solid transparent;
+            border-radius: 12px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        select:focus, input:focus {
+            border-color: var(--button-color);
+        }
+
+        .btn-save {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            background-color: var(--button-color);
+            color: var(--button-text-color);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(46, 166, 255, 0.3);
+            transition: opacity 0.2s ease;
+        }
+
+        .btn-save:active {
+            opacity: 0.8;
+        }
+    </style>
 </head>
 <body>
-  <h3>Выбери фото и фильтр</h3>
-  <label class="upload-label" for="fileInput">📷 Нажми, чтобы загрузить фото</label>
-  <input type="file" id="fileInput" accept="image/*">
-  <canvas id="canvas"></canvas>
-  <div class="filters">
-    <button onclick="applyFilter('none')">Оригинал</button>
-    <button onclick="applyFilter('grayscale')">Ч/Б</button>
-    <button onclick="applyFilter('sepia')">Сепия</button>
-    <button onclick="applyFilter('blur')">Блюр</button>
-  </div>
-  <button style="margin-top:16px;width:100%;" onclick="sendToBot()">✅ Применить и отправить боту</button>
+    <div class="content">
+        <div class="header">
+            <h1>Параметры поиска</h1>
+            <p>Укажите критерии для отслеживания недооцененных подарков</p>
+        </div>
 
-<script>
-  const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
-  let currentImage = null;
-  let currentFilter = 'none';
+        <form id="filterForm">
+            <div class="form-group">
+                <label for="collection">Коллекция подарка</label>
+                <select id="collection">
+                    <option value="">Все коллекции</option>
+                    <option value="delicious cake">Delicious Cake</option>
+                    <option value="green star">Green Star</option>
+                    <option value="santa hat">Santa Hat</option>
+                    <option value="red bow">Red Bow</option>
+                    <option value="magic potion">Magic Potion</option>
+                </select>
+            </div>
 
-  Telegram.WebApp.ready();
-  Telegram.WebApp.expand();
+            <div class="form-group">
+                <label for="model">Желаемая модель</label>
+                <input type="text" id="model" placeholder="Например: Gold, Diamond, Ice...">
+            </div>
 
-  document.getElementById('fileInput').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const img = new Image();
-    img.onload = () => {
-      currentImage = img;
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      applyFilter(currentFilter);
-    };
-    img.src = URL.createObjectURL(file);
-  });
+            <div class="form-group">
+                <label for="backdrop">Цвет фона</label>
+                <input type="text" id="backdrop" placeholder="Например: Midnight Blue, Onyx...">
+            </div>
+        </form>
+    </div>
 
-  function applyFilter(type) {
-    if (!currentImage) return;
-    currentFilter = type;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.filter = 'none';
-    if (type === 'grayscale') ctx.filter = 'grayscale(100%)';
-    if (type === 'sepia') ctx.filter = 'sepia(100%)';
-    if (type === 'blur') ctx.filter = 'blur(4px)';
-    ctx.drawImage(currentImage, 0, 0);
-    ctx.filter = 'none';
-  }
+    <button type="button" class="btn-save" id="saveBtn">Сохранить фильтры</button>
 
-  function sendToBot() {
-    if (!currentImage) {
-      Telegram.WebApp.showAlert('Сначала загрузи фото');
-      return;
-    }
-    const model = navigator.userAgent; // упрощённо; можно парсить
-    const payload = {
-      background: currentFilter,
-      model: model,
-    };
-    Telegram.WebApp.sendData(JSON.stringify(payload));
-    Telegram.WebApp.close();
-  }
-</script>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const collection = document.getElementById('collection').value;
+            const model = document.getElementById('model').value;
+            const backdrop = document.getElementById('backdrop').value;
+
+            const payload = {
+                collection: collection,
+                model: model,
+                backdrop: backdrop
+            };
+
+            // Отправка данных боту и закрытие WebApp
+            tg.sendData(JSON.stringify(payload));
+            tg.close();
+        });
+    </script>
 </body>
 </html>
