@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Фильтры</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 16px; background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #000); }
+    canvas { width: 100%; border-radius: 12px; margin: 12px 0; }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+    button { flex: 1; min-width: 70px; padding: 10px; border-radius: 8px; border: 1px solid #ccc; background: var(--tg-theme-button-color, #2481cc); color: var(--tg-theme-button-text-color, #fff); }
+    input[type="file"] { display: none; }
+    .upload-label { display: block; text-align: center; padding: 40px 20px; border: 2px dashed #aaa; border-radius: 12px; cursor: pointer; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <h3>Выбери фото и фильтр</h3>
+  <label class="upload-label" for="fileInput">📷 Нажми, чтобы загрузить фото</label>
+  <input type="file" id="fileInput" accept="image/*">
+  <canvas id="canvas"></canvas>
+  <div class="filters">
+    <button onclick="applyFilter('none')">Оригинал</button>
+    <button onclick="applyFilter('grayscale')">Ч/Б</button>
+    <button onclick="applyFilter('sepia')">Сепия</button>
+    <button onclick="applyFilter('blur')">Блюр</button>
+  </div>
+  <button style="margin-top:16px;width:100%;" onclick="sendToBot()">✅ Применить и отправить боту</button>
+
+<script>
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  let currentImage = null;
+  let currentFilter = 'none';
+
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+
+  document.getElementById('fileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      currentImage = img;
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      applyFilter(currentFilter);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
+  function applyFilter(type) {
+    if (!currentImage) return;
+    currentFilter = type;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.filter = 'none';
+    if (type === 'grayscale') ctx.filter = 'grayscale(100%)';
+    if (type === 'sepia') ctx.filter = 'sepia(100%)';
+    if (type === 'blur') ctx.filter = 'blur(4px)';
+    ctx.drawImage(currentImage, 0, 0);
+    ctx.filter = 'none';
+  }
+
+  function sendToBot() {
+    if (!currentImage) {
+      Telegram.WebApp.showAlert('Сначала загрузи фото');
+      return;
+    }
+    const model = navigator.userAgent; // упрощённо; можно парсить
+    const payload = {
+      background: currentFilter,
+      model: model,
+    };
+    Telegram.WebApp.sendData(JSON.stringify(payload));
+    Telegram.WebApp.close();
+  }
+</script>
+</body>
+</html>
